@@ -1,27 +1,3 @@
-"""
-TaskHub - a tiny internal ticketing app.
-Intentionally vulnerable for CTF use (medium difficulty): Broken Access
-Control (OWASP A01).
-
-Vulnerability chain:
-  1. Horizontal info leak: /api/activity is a "team activity feed" meant
-     to show what the team is working on. It returns every ticket's id,
-     title and author -- company-wide, to any logged-in user -- which
-     leaks the (otherwise unguessable, UUID4) ticket IDs belonging to
-     OTHER users, including the admin account.
-  2. Missing function-level access control: /ticket/<id> correctly
-     checks ownership... UNLESS the request includes a legacy
-     `?support=1` override that was meant for a "support staff" role
-     that was never actually implemented. Any logged-in user can set
-     it and read ANY ticket, not just their own.
-  3. A decoy flag is planted in the admin's ticket (reachable via the
-     chain above) to make players second-guess a too-easy "win".
-  4. Vertical privilege escalation: /admin/settings only checks that
-     *someone* is logged in, never that they're an admin. The real
-     flag lives there. Its existence is hinted at (not announced) in
-     the admin's ticket body, found via steps 1-2.
-"""
-
 import os
 import sqlite3
 import secrets
@@ -30,7 +6,9 @@ import uuid
 from flask import Flask, request, render_template, redirect, url_for, session, g, jsonify
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(APP_DIR, "taskhub.db")
+
+# PERUBAHAN 1: Ubah lokasi database ke folder /tmp/ yang diizinkan Vercel
+DB_PATH = "/tmp/taskhub.db"
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
@@ -78,9 +56,6 @@ def init_db():
             "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
             ("mike", "mike2024", "user"),
         )
-        # Admin password is intentionally strong/unknown -- players are
-        # never meant to log in as admin. The whole point of the bug is
-        # that they don't need to.
         db.execute(
             "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
             ("admin", secrets.token_hex(16), "admin"),
@@ -123,6 +98,10 @@ def init_db():
         )
         db.commit()
     db.close()
+
+
+# PERUBAHAN 2: Panggil init_db() di sini agar Vercel mengeksekusinya saat server menyala
+init_db()
 
 
 def current_user():
@@ -179,11 +158,6 @@ def dashboard():
 
 @app.route("/api/activity")
 def api_activity():
-    """
-    'See what the team is working on' feed. Company-wide, by design --
-    but it leaks every ticket's id (including other users' and the
-    admin's), which is the only way anyone finds those IDs at all.
-    """
     if "user_id" not in session:
         return jsonify({"error": "unauthorized"}), 401
     db = get_db()
@@ -199,10 +173,6 @@ def api_activity():
 
 @app.route("/ticket/<ticket_id>")
 def view_ticket(ticket_id):
-    """
-    View a single ticket. Ownership IS checked... but a legacy
-    `?support=1` override bypasses it with no role check at all.
-    """
     user = current_user()
     if not user:
         return redirect(url_for("login"))
@@ -228,10 +198,6 @@ def view_ticket(ticket_id):
 
 @app.route("/admin/settings")
 def admin_settings():
-    """
-    Real admin panel. Bug: only checks that a session exists, never
-    that the session's role is actually 'admin'.
-    """
     user = current_user()
     if not user:
         return redirect(url_for("login"))
@@ -241,5 +207,4 @@ def admin_settings():
 
 
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=5000)
