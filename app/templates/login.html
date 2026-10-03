@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <input type="text" name="username" placeholder="username" autocomplete="off">
+    <input type="password" name="password" placeholder="password">
+    <button type="submit">Log in</button>
+  </form>
+  <p style="color:#9ca3af; font-size: 13px;">Staff directory: judy, mike. (Ask IT if you forgot your password.)</p>
+{% endblock %}

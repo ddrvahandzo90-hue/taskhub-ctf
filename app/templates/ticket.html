@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if error %}
+    <div class="error">{{ error }}</div>
+    <p><a href="{{ url_for('dashboard') }}">&larr; back to dashboard</a></p>
+  {% else %}
+    <div class="ticket">
+      <h3>{{ ticket['title'] }} <span class="badge">by {{ ticket['owner'] }}</span></h3>
+      <p>{{ ticket['body'] }}</p>
+    </div>
+    <p><a href="{{ url_for('dashboard') }}">&larr; back to dashboard</a></p>
+  {% endif %}
+{% endblock %}

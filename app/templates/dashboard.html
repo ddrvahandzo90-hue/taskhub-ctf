@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Your tickets, {{ user['username'] }}</h2>
+  {% for t in tickets %}
+    <div class="ticket">
+      <h3>{{ t['title'] }}</h3>
+      <p><a href="{{ url_for('view_ticket', ticket_id=t['id']) }}">open ticket &rarr;</a></p>
+    </div>
+  {% else %}
+    <p>No tickets yet.</p>
+  {% endfor %}
+  <p style="margin-top:24px;"><a href="/api/activity">team activity feed</a> &mdash; see what everyone's working on.</p>
+{% endblock %}
